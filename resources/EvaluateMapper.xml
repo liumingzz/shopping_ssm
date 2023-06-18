@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.EvaluateDao">
+    <resultMap id="evaluateMap" type="com.entity.Evaluates">
+        <result property="content"  column="econtent"></result>
+        <result property="goodName" column="gname"></result>
+        <result property="systime" column="systime"></result>
+        <association property="user" javaType="com.entity.Users">
+            <id column="uid" property="id"></id>
+            <result property="username" column="username"></result>
+        </association>
+    </resultMap>
+
+    <resultMap id="evaluateMap2" type="com.entity.Evaluates">
+        <result property="gid" column="gid"></result>
+        <result property="oid" column="oid"></result>
+        <result property="uid" column="uid"></result>
+        <result property="goodName" column="gname"></result>
+        <result property="content" column="econtent"></result>
+        <result property="systime" column="systime"></result>
+        <association property="user" javaType="com.entity.Users">
+            <id column="uid" property="id"></id>
+            <result property="username" column="username"></result>
+            <result property="name" column="uname"></result>
+        </association>
+    </resultMap>
+
+    <!-- 查询所有评论信息 -->
+    <select id="selectAll" resultMap="evaluateMap2">
+        select *, e.content econtent, g.name gname, u.username uname from
+         evaluates e, users u, goods g where e.uid = u.id and e.gid = g.id
+         <if test="username!=null">
+             and u.username like concat('%',#{username},'%')
+         </if>
+        <if test="goodname!=null and goodname != ''">
+            and g.name like concat('%',#{goodname},'%')
+        </if>
+         limit #{begin}, #{size}
+    </select>
+
+    <!-- 查询评论总数 -->
+    <select id="selectTotal" resultType="int">
+        select count(*) from evaluates e, users u, goods g where e.uid = u.id and e.gid = g.id
+        <if test="username!=null">
+            and u.username like concat('%',#{username},'%')
+        </if>
+        <if test="goodname!=null">
+            and g.name like concat('%',#{goodname},'%')
+        </if>
+    </select>
+
+    <!-- 根据商品编号查询用户评论信息 -->
+    <select id="selectByGid" resultMap="evaluateMap">
+       select g.name gname, uid, gid, username, systime, e.content econtent from
+       (select * from evaluates where gid = #{gid}) as e ,
+       (select * from users) as u ,
+       (select * from goods where id = #{gid}) as g where e.uid = u.id
+    </select>
+
+    <!-- 根据订单编号和商品编号查询评论-->
+    <select id="selectByOidAndGid" resultMap="evaluateMap2">
+        select *, e.content econtent, g.name gname, u.username uname from evaluates e, users u, goods g where oid = #{oid} and gid = #{gid} and u.id = e.uid and e.gid = g.id
+    </select>
+
+    <!-- 查询指定订单编号在item表以及evaluates表的记录数，并将他们相减得出该订单的子商品是否已经全部评论-->
+    <select id="figureEvaluate" resultType="int">
+       select i.c1 - e.c2 from (select count(*) c1 from items where order_id = #{oid}) as i,(select count(*) c2 from evaluates where oid = #{oid}) as e
+    </select>
+
+    <!-- 添加商品评论 -->
+    <insert id="insert" parameterType="com.entity.Evaluates">
+        insert into evaluates(gid,oid,uid,content,systime) values(#{gid},#{oid},#{uid},#{content},#{systime})
+    </insert>
+
+    <update id="update" parameterType="com.entity.Evaluates">
+        update evaluates set content = #{content} where gid = #{gid} and oid = #{oid}
+    </update>
+
+    <delete id="delete" parameterType="com.entity.Evaluates">
+        delete from evaluates where gid = #{gid} and oid = #{oid}
+    </delete>
+</mapper>
